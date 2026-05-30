@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     port = os.getenv("APP_PORT", "8000")
     logger.info(f"🌍 Travel Research Agent starting on port {port}...")
     orchestrator = TravelResearchOrchestrator()
+    app.state.briefs = {}
     logger.info("✅ All services initialized successfully")
     yield
     logger.info("👋 Travel Research Agent shutting down")
@@ -69,9 +70,24 @@ async def research(request: ResearchRequest) -> ResearchResponse:
     Takes a destination and optional preferences, researches the web,
     generates an AI-powered travel brief, and uploads it to Box.
     """
+    import uuid
     logger.info(f"Received research request for: {request.destination}")
     result = await orchestrator.run(request)
+    if result.success and result.brief_full:
+        brief_id = str(uuid.uuid4())[:8]
+        app.state.briefs[brief_id] = result.brief_full
+        result.brief_id = brief_id
     return result
+
+
+@app.get("/brief/{brief_id}", response_class=HTMLResponse)
+async def view_brief(brief_id: str):
+    """Serve a generated travel brief as a full page."""
+    from fastapi import Request
+    brief_content = app.state.briefs.get(brief_id, "")
+    if not brief_content:
+        return HTMLResponse("<h1>Brief not found</h1>", status_code=404)
+    return HTMLResponse(BRIEF_PAGE_TEMPLATE.replace("{{BRIEF_CONTENT}}", brief_content))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -80,7 +96,7 @@ async def home():
     return HTML_PAGE
 
 
-HTML_PAGE = """<!DOCTYPE html>
+HTML_PAGE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -99,7 +115,7 @@ HTML_PAGE = """<!DOCTYPE html>
             padding: 2rem;
         }
         .container {
-            max-width: 700px;
+            max-width: 800px;
             margin: 0 auto;
             background: white;
             border-radius: 16px;
@@ -297,77 +313,155 @@ HTML_PAGE = """<!DOCTYPE html>
     </div>
 
     <script>
-        document.getElementById('researchForm').addEventListener('submit', async (e) => {
+        document.getElementById('researchForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const submitBtn = document.getElementById('submitBtn');
-            const loading = document.getElementById('loading');
-            const resultDiv = document.getElementById('result');
+            var submitBtn = document.getElementById('submitBtn');
+            var loading = document.getElementById('loading');
+            var resultDiv = document.getElementById('result');
 
-            // Reset UI
             submitBtn.disabled = true;
             loading.classList.add('active');
             resultDiv.className = 'result';
             resultDiv.style.display = 'none';
 
-            // Build request body
-            const destination = document.getElementById('destination').value;
-            const tripLength = document.getElementById('trip_length').value;
-            const budgetLevel = document.getElementById('budget_level').value;
-            const travelStyle = document.getElementById('travel_style').value;
-            const foodInterests = document.getElementById('food_interests').value;
-            const groupType = document.getElementById('group_type').value;
+            var destination = document.getElementById('destination').value;
+            var tripLength = document.getElementById('trip_length').value;
+            var budgetLevel = document.getElementById('budget_level').value;
+            var travelStyle = document.getElementById('travel_style').value;
+            var foodInterests = document.getElementById('food_interests').value;
+            var groupType = document.getElementById('group_type').value;
 
-            const preferences = {};
+            var preferences = {};
             if (tripLength) preferences.trip_length = tripLength;
             if (budgetLevel) preferences.budget_level = budgetLevel;
-            if (travelStyle) preferences.travel_style = travelStyle.split(',').map(s => s.trim()).filter(s => s);
-            if (foodInterests) preferences.food_interests = foodInterests.split(',').map(s => s.trim()).filter(s => s);
+            if (travelStyle) preferences.travel_style = travelStyle.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+            if (foodInterests) preferences.food_interests = foodInterests.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
             if (groupType) preferences.group_type = groupType;
 
-            const body = {
+            var body = {
                 destination: destination,
                 preferences: Object.keys(preferences).length > 0 ? preferences : null
             };
 
             try {
-                const response = await fetch('/research', {
+                var response = await fetch('/research', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
 
-                const data = await response.json();
+                var data = await response.json();
 
-                if (data.success) {
-                    let html = `<h3>✅ Research Complete!</h3>`;
-                    html += `<p><strong>Destination:</strong> ${data.destination}</p>`;
-                    html += `<p><strong>Message:</strong> ${data.message}</p>`;
-
-                    if (data.box_file_url) {
-                        html += `<p><strong>File:</strong> <a href="${data.box_file_url}" target="_blank">${data.box_file_name}</a></p>`;
-                    } else if (data.box_file_name) {
-                        html += `<p><strong>File:</strong> ${data.box_file_name}</p>`;
-                    }
-
-                    if (data.brief_preview) {
-                        html += `<div class="preview">${data.brief_preview}...</div>`;
-                    }
-
-                    resultDiv.className = 'result success';
-                    resultDiv.innerHTML = html;
-                } else {
+                if (data.success && data.brief_id) {
+                    window.location.href = '/brief/' + data.brief_id;
+                } else if (!data.success) {
                     resultDiv.className = 'result error';
-                    resultDiv.innerHTML = `<h3>❌ Error</h3><p>${data.message}</p>`;
+                    resultDiv.innerHTML = '<h3>Error</h3><p>' + data.message + '</p>';
+                    submitBtn.disabled = false;
+                    loading.classList.remove('active');
                 }
             } catch (err) {
                 resultDiv.className = 'result error';
-                resultDiv.innerHTML = `<h3>❌ Error</h3><p>Request failed: ${err.message}</p>`;
-            } finally {
+                resultDiv.innerHTML = '<h3>Error</h3><p>Request failed: ' + err.message + '</p>';
                 submitBtn.disabled = false;
                 loading.classList.remove('active');
             }
         });
+    </script>
+</body>
+</html>
+"""
+
+
+BRIEF_PAGE_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Brief</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 2rem;
+        }
+        .brief-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .brief-content h1 { font-size: 1.8rem; color: #1e293b; margin: 1.5rem 0 0.75rem; border-bottom: 2px solid #667eea; padding-bottom: 0.4rem; }
+        .brief-content h2 { font-size: 1.4rem; color: #4338ca; margin: 1.3rem 0 0.6rem; }
+        .brief-content h3 { font-size: 1.15rem; color: #6366f1; margin: 1rem 0 0.5rem; }
+        .brief-content h4 { font-size: 1rem; color: #7c3aed; margin: 0.8rem 0 0.4rem; }
+        .brief-content p { margin-bottom: 0.8rem; }
+        .brief-content ul, .brief-content ol { padding-left: 1.5rem; margin: 0.5rem 0 1rem; }
+        .brief-content li { margin-bottom: 0.4rem; }
+        .brief-content strong { color: #334155; }
+        .brief-content hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+        .brief-content em { color: #475569; }
+    </style>
+</head>
+<body>
+    <div class="brief-container">
+        <a href="/" class="back-link">&larr; Back to Search</a>
+        <div class="brief-content" id="briefContent"></div>
+    </div>
+    <script type="text/plain" id="rawBrief">{{BRIEF_CONTENT}}</script>
+    <script>
+        var raw = document.getElementById('rawBrief').textContent;
+        var lines = raw.split('\n');
+        var html = '';
+        var inList = false;
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            if (line.match(/^#### /)) {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<h4>' + line.substring(5) + '</h4>';
+            } else if (line.match(/^### /)) {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<h3>' + line.substring(4) + '</h3>';
+            } else if (line.match(/^## /)) {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<h2>' + line.substring(3) + '</h2>';
+            } else if (line.match(/^# /)) {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<h1>' + line.substring(2) + '</h1>';
+            } else if (line.match(/^---$/)) {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<hr>';
+            } else if (line.match(/^[-*] /)) {
+                if (!inList) { html += '<ul>'; inList = true; }
+                html += '<li>' + line.substring(2) + '</li>';
+            } else if (line.match(/^\d+\. /)) {
+                if (!inList) { html += '<ul>'; inList = true; }
+                html += '<li>' + line.replace(/^\d+\. /, '') + '</li>';
+            } else if (line.trim() === '') {
+                if (inList) { html += '</ul>'; inList = false; }
+            } else {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<p>' + line + '</p>';
+            }
+        }
+        if (inList) html += '</ul>';
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        document.getElementById('briefContent').innerHTML = html;
     </script>
 </body>
 </html>
