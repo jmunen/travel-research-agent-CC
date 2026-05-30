@@ -1,7 +1,10 @@
-import 'dotenv/config';
-import { getTravelResearchFromApify } from '../lib/apify';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 async function main() {
+  const { getTravelResearchFromApify } = await import('../lib/apify');
+
   const results = await getTravelResearchFromApify({
     destination: 'Mexico City',
     tripLength: '4 days',

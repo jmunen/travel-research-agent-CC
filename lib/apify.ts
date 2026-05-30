@@ -1,17 +1,21 @@
 import { ApifyClient } from 'apify-client';
 import type { ResearchResult, TravelResearchInput } from './types';
 
-const APIFY_TOKEN = process.env.APIFY_TOKEN;
-
-function getApifyClient() {
-  if (!APIFY_TOKEN) {
-    throw new Error('Missing APIFY_TOKEN in .env.local');
+function getApifyToken() {
+    const token = process.env.APIFY_TOKEN;
+  
+    if (!token) {
+      throw new Error('Missing APIFY_TOKEN in .env.local');
+    }
+  
+    return token;
   }
-
-  return new ApifyClient({
-    token: APIFY_TOKEN,
-  });
-}
+  
+  function getApifyClient() {
+    return new ApifyClient({
+      token: getApifyToken(),
+    });
+  }
 
 function buildTravelQueries(input: TravelResearchInput): string[] {
   const destination = input.destination.trim();
