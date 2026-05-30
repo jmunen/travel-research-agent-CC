@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🌍 Travel Research Agent
 
 An AI-powered travel research assistant that generates comprehensive travel briefs by combining web research with AI summarization.
@@ -192,3 +193,7 @@ travel-research-agent/
 ## License
 
 MIT
+=======
+# travel-research-agent-CC
+AI travel research assistant using Apify, Box, and AI summarization, built using Kiro.
+>>>>>>> 9d9f0bca2721cd35a3ef4573e5dfce7c88472322
