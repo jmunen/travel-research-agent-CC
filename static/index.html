@@ -4,559 +4,551 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Research Agent</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', sans-serif;
             min-height: 100vh;
-            overflow-x: hidden;
-            background: #0f0f1a;
-            color: #e0e0e0;
+            background: #faf7f2;
+            color: #2d2a26;
         }
 
-        /* Animated gradient background */
-        .bg-animation {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            z-index: -1;
-            background: linear-gradient(-45deg, #0f0f1a, #1a1a2e, #16213e, #0f3460);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+        /* Hero section with travel photo */
+        .hero {
+            position: relative;
+            height: 320px;
+            background: url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=80') center/cover;
+            display: flex;
+            align-items: flex-end;
+            padding: 2rem;
         }
-
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+        }
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 700px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            color: #fff;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 0.4rem;
+        }
+        .hero p {
+            color: rgba(255,255,255,0.85);
+            font-size: 1rem;
+            font-weight: 300;
         }
 </style>
 </head>
 <body>
-    <div class="bg-animation"></div>
-    <!-- Floating particles -->
-    <div class="particles" id="particles"></div>
-
-    <!-- Pipeline indicator -->
-    <div class="pipeline">
-        <div class="pipeline-step" id="step1">
-            <div class="step-icon">🔍</div>
-            <div class="step-label">Scraping</div>
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-step" id="step2">
-            <div class="step-icon">🤖</div>
-            <div class="step-label">AI Summary</div>
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-step" id="step3">
-            <div class="step-icon">📦</div>
-            <div class="step-label">Save to Box</div>
+    <div class="hero">
+        <div class="hero-content">
+            <h1>Travel Research Agent</h1>
+            <p>AI-powered destination briefs, saved to your cloud.</p>
         </div>
     </div>
 
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <span class="logo-icon">✈️</span>
-                <span class="logo-text">TravelAgent<span class="logo-ai">AI</span></span>
-            </div>
-            <p class="tagline">Drop a destination. Get a travel brief. Powered by AI.</p>
-        </header>
+    <main class="main">
+        <!-- How it works strip -->
+        <div class="how-it-works">
+            <div class="step-pill"><span class="step-num">1</span> You pick a destination</div>
+            <div class="step-arrow">→</div>
+            <div class="step-pill"><span class="step-num">2</span> We scrape the web</div>
+            <div class="step-arrow">→</div>
+            <div class="step-pill"><span class="step-num">3</span> AI writes your brief</div>
+            <div class="step-arrow">→</div>
+            <div class="step-pill"><span class="step-num">4</span> Saved to Box</div>
+        </div>
 
-        <!-- Main card -->
-        <main class="card">
-            <form id="researchForm">
-                <!-- Destination - hero input -->
-                <div class="hero-input-group">
-                    <label for="destination">Where are you going?</label>
-                    <div class="hero-input-wrapper">
-                        <span class="input-icon">📍</span>
-                        <input type="text" id="destination" placeholder="Tokyo, Japan" required autocomplete="off">
+        <div class="content-grid">
+            <!-- Form panel -->
+            <section class="form-panel">
+                <h2>Plan your trip</h2>
+                <form id="researchForm">
+                    <div class="field">
+                        <label for="destination">Where to?</label>
+                        <input type="text" id="destination" placeholder="Mexico City, Tokyo, Barcelona..." required>
                     </div>
-                </div>
 
-                <!-- Preferences grid -->
-                <div class="prefs-toggle" id="prefsToggle">
-                    <span>⚙️ Customize your trip</span>
-                    <span class="toggle-arrow">▼</span>
-                </div>
-
-                <div class="prefs-panel" id="prefsPanel">
-                    <div class="prefs-grid">
-                        <div class="pref-item">
-                            <label for="trip_length">⏱️ Duration</label>
-                            <input type="text" id="trip_length" placeholder="5 days">
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="trip_length">How long?</label>
+                            <input type="text" id="trip_length" placeholder="4 days">
                         </div>
-                        <div class="pref-item">
-                            <label for="budget_level">💰 Budget</label>
+                        <div class="field">
+                            <label for="budget_level">Budget</label>
                             <select id="budget_level">
-                                <option value="">Any</option>
-                                <option value="budget">Budget</option>
-                                <option value="mid-range">Mid-Range</option>
+                                <option value="">Any budget</option>
+                                <option value="budget">Budget-friendly</option>
+                                <option value="mid-range">Mid-range</option>
                                 <option value="luxury">Luxury</option>
                             </select>
                         </div>
-                        <div class="pref-item">
-                            <label for="travel_style">🎯 Style</label>
-                            <input type="text" id="travel_style" placeholder="adventure, cultural">
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="travel_style">Travel style</label>
+                            <input type="text" id="travel_style" placeholder="adventure, cultural, relaxation">
                         </div>
-                        <div class="pref-item">
-                            <label for="food_interests">🍜 Food</label>
-                            <input type="text" id="food_interests" placeholder="street food, sushi">
+                        <div class="field">
+                            <label for="food_interests">Food interests</label>
+                            <input type="text" id="food_interests" placeholder="street food, fine dining">
                         </div>
-                        <div class="pref-item full-width">
-                            <label for="group_type">👥 Traveling with</label>
-                            <div class="chip-group" id="groupChips">
-                                <button type="button" class="chip" data-value="solo">Solo</button>
-                                <button type="button" class="chip" data-value="couple">Couple</button>
-                                <button type="button" class="chip" data-value="friends">Friends</button>
-                                <button type="button" class="chip" data-value="family">Family</button>
-                            </div>
-                            <input type="hidden" id="group_type" value="">
+                    </div>
+
+                    <div class="field">
+                        <label>Who's going?</label>
+                        <div class="group-options">
+                            <label class="radio-card">
+                                <input type="radio" name="group_type" value="solo">
+                                <span class="radio-label">🧳 Solo</span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="group_type" value="couple">
+                                <span class="radio-label">💑 Couple</span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="group_type" value="friends">
+                                <span class="radio-label">👯 Friends</span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="group_type" value="family">
+                                <span class="radio-label">👨‍👩‍👧 Family</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        Generate my travel brief
+                    </button>
+                </form>
+            </section>
+
+            <!-- Info sidebar -->
+            <aside class="info-panel">
+                <div class="info-card">
+                    <h3>What you'll get</h3>
+                    <ul>
+                        <li>Top attractions & hidden gems</li>
+                        <li>Best restaurants by budget</li>
+                        <li>Neighborhoods to explore</li>
+                        <li>Day-by-day itinerary</li>
+                        <li>Safety & transport tips</li>
+                        <li>Saved as a Markdown file in Box</li>
+                    </ul>
+                </div>
+                <div class="info-card powered-by">
+                    <h3>Powered by</h3>
+                    <div class="tech-logos">
+                        <div class="tech-item">
+                            <span class="tech-icon">🔍</span>
+                            <span>Apify</span>
+                            <small>Web scraping</small>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-icon">🧠</span>
+                            <span>Amazon Bedrock</span>
+                            <small>AI summarization</small>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-icon">📦</span>
+                            <span>Box</span>
+                            <small>Cloud storage</small>
                         </div>
                     </div>
                 </div>
+            </aside>
+        </div>
 
-                <!-- Submit -->
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <span class="btn-text">Generate Travel Brief</span>
-                    <span class="btn-icon">→</span>
-                </button>
-            </form>
-
-            <!-- Loading state -->
-            <div class="loading-state" id="loading">
-                <div class="loading-globe">
-                    <div class="globe"></div>
+        <!-- Loading overlay -->
+        <div class="loading-overlay" id="loading">
+            <div class="loading-card">
+                <div class="loading-animation">
+                    <div class="plane">✈️</div>
                 </div>
-                <p class="loading-text">Researching your destination...</p>
-                <p class="loading-sub">Scraping the web, summarizing with AI, saving to Box</p>
-                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                <h3>Researching your destination...</h3>
+                <p>Scraping travel sites, summarizing with AI, and saving to Box.</p>
+                <div class="loading-steps">
+                    <div class="l-step active" id="ls1">Collecting web data</div>
+                    <div class="l-step" id="ls2">Generating AI summary</div>
+                    <div class="l-step" id="ls3">Uploading to Box</div>
+                </div>
             </div>
+        </div>
 
-            <!-- Result -->
-            <div class="result-panel" id="result"></div>
-        </main>
+        <!-- Result -->
+        <div class="result-section" id="result"></div>
+    </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="tech-stack">
-                <span class="tech-badge">Apify</span>
-                <span class="tech-badge">Amazon Bedrock</span>
-                <span class="tech-badge">Box</span>
-                <span class="tech-badge">FastAPI</span>
-            </div>
-            <p class="footer-text">Built for Cascadia Hackathon 2026</p>
-        </footer>
-    </div>
+    <footer class="footer">
+        <p>Built for Cascadia Hackathon 2026 · Travel Research Agent</p>
+    </footer>
 
     <style>
-        /* Particles */
-        .particles {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            z-index: -1;
-            pointer-events: none;
-        }
-        .particle {
-            position: absolute;
-            width: 4px; height: 4px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-            animation: float 20s infinite linear;
-        }
-        @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+        /* Main layout */
+        .main {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 1.5rem 3rem;
         }
 
-        /* Pipeline */
-        .pipeline {
+        /* How it works */
+        .how-it-works {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 1rem 0;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-            transition: opacity 0.3s;
-        }
-        .pipeline.active { opacity: 1; }
-        .pipeline-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.3rem;
-            transition: all 0.3s;
-        }
-        .pipeline-step.active .step-icon {
-            transform: scale(1.3);
-            filter: drop-shadow(0 0 8px rgba(99, 179, 237, 0.8));
-        }
-        .pipeline-step.done .step-icon { opacity: 0.5; }
-        .step-icon { font-size: 1.5rem; transition: all 0.3s; }
-        .step-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #8892b0; }
-        .pipeline-connector {
-            width: 40px; height: 2px;
-            background: linear-gradient(90deg, #1e3a5f, #63b3ed);
-            border-radius: 1px;
-            opacity: 0.3;
-        }
-
-        /* App container */
-        .app-container {
-            max-width: 640px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem 2rem;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header */
-        .header { text-align: center; padding: 2rem 0 1.5rem; }
-        .logo { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-        .logo-icon { font-size: 2rem; }
-        .logo-text { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .logo-ai { color: #63b3ed; }
-        .tagline { color: #8892b0; font-size: 0.9rem; font-weight: 300; }
-
-        /* Card */
-        .card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            padding: 2rem;
-            flex: 1;
-        }
-
-        /* Hero input */
-        .hero-input-group { margin-bottom: 1.5rem; }
-        .hero-input-group label {
-            display: block;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #8892b0;
-            margin-bottom: 0.6rem;
-        }
-        .hero-input-wrapper {
+            gap: 0.6rem;
+            padding: 1.2rem 0;
+            margin: -1.5rem auto 2rem;
+            background: #fff;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            max-width: 750px;
             position: relative;
+            z-index: 2;
+            flex-wrap: wrap;
+        }
+        .step-pill {
             display: flex;
             align-items: center;
-        }
-        .input-icon {
-            position: absolute;
-            left: 1rem;
-            font-size: 1.2rem;
-        }
-        .hero-input-wrapper input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            color: #fff;
-            font-size: 1.2rem;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: #5c5650;
             font-weight: 500;
-            transition: all 0.3s;
         }
-        .hero-input-wrapper input:focus {
-            outline: none;
-            border-color: #63b3ed;
-            background: rgba(99, 179, 237, 0.05);
-            box-shadow: 0 0 20px rgba(99, 179, 237, 0.1);
-        }
-        .hero-input-wrapper input::placeholder { color: #4a5568; }
-
-        /* Preferences toggle */
-        .prefs-toggle {
+        .step-num {
+            width: 20px; height: 20px;
+            background: #e8dfd4;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0.8rem 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 10px;
-            cursor: pointer;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-            color: #a0aec0;
-            transition: all 0.2s;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #8b6f47;
         }
-        .prefs-toggle:hover { background: rgba(255, 255, 255, 0.06); color: #e2e8f0; }
-        .toggle-arrow { transition: transform 0.3s; font-size: 0.7rem; }
-        .prefs-toggle.open .toggle-arrow { transform: rotate(180deg); }
+        .step-arrow { color: #c4b5a0; font-size: 0.8rem; }
 
-        /* Preferences panel */
-        .prefs-panel {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease, opacity 0.3s;
-            opacity: 0;
-        }
-        .prefs-panel.open { max-height: 400px; opacity: 1; }
-        .prefs-grid {
+        /* Content grid */
+        .content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 2rem;
+            align-items: start;
         }
-        .pref-item label {
-            display: block;
-            font-size: 0.75rem;
-            color: #8892b0;
-            margin-bottom: 0.4rem;
-        }
-        .pref-item input, .pref-item select {
-            width: 100%;
-            padding: 0.6rem 0.8rem;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 0.85rem;
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s;
-        }
-        .pref-item input:focus, .pref-item select:focus {
-            outline: none;
-            border-color: #63b3ed;
-        }
-        .pref-item input::placeholder { color: #4a5568; }
-        .pref-item select option { background: #1a1a2e; color: #e2e8f0; }
-        .pref-item.full-width { grid-column: 1 / -1; }
 
-        /* Chips */
-        .chip-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .chip {
-            padding: 0.4rem 1rem;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            color: #a0aec0;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'Inter', sans-serif;
+        /* Form panel */
+        .form-panel {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 1px solid #ebe6df;
         }
-        .chip:hover { border-color: #63b3ed; color: #63b3ed; }
-        .chip.selected {
-            background: rgba(99, 179, 237, 0.15);
-            border-color: #63b3ed;
-            color: #63b3ed;
+        .form-panel h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #2d2a26;
+        }
+        .field { margin-bottom: 1.2rem; }
+        .field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #7a7067;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .field input, .field select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid #e8e2da;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: 'DM Sans', sans-serif;
+            color: #2d2a26;
+            background: #fdfcfa;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input:focus, .field select:focus {
+            outline: none;
+            border-color: #c4956a;
+            box-shadow: 0 0 0 3px rgba(196, 149, 106, 0.1);
+        }
+        .field input::placeholder { color: #bfb5a8; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* Group radio cards */
+        .group-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+        .radio-card {
+            cursor: pointer;
+        }
+        .radio-card input { display: none; }
+        .radio-label {
+            display: block;
+            text-align: center;
+            padding: 0.6rem 0.3rem;
+            border: 1.5px solid #e8e2da;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            background: #fdfcfa;
+        }
+        .radio-card input:checked + .radio-label {
+            border-color: #c4956a;
+            background: #fdf3ea;
+            color: #8b5e3c;
+            font-weight: 600;
+        }
+        .radio-label:hover {
+            border-color: #d4c4b0;
         }
 
         /* Submit button */
         .submit-btn {
             width: 100%;
             padding: 1rem;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            background: #2d2a26;
+            color: #fff;
             border: none;
-            border-radius: 14px;
-            color: white;
+            border-radius: 12px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: all 0.3s;
-            margin-top: 1.5rem;
-            font-family: 'Inter', sans-serif;
-            position: relative;
-            overflow: hidden;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
         }
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s;
-        }
-        .submit-btn:hover::before { left: 100%; }
         .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(37, 99, 235, 0.3);
+            background: #4a3f35;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(45, 42, 38, 0.2);
         }
         .submit-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
-        }
-        .btn-icon { font-size: 1.2rem; transition: transform 0.2s; }
-        .submit-btn:hover .btn-icon { transform: translateX(4px); }
-
-        /* Loading */
-        .loading-state {
-            display: none;
-            text-align: center;
-            padding: 2.5rem 1rem;
-        }
-        .loading-state.active { display: block; }
-        .loading-globe { margin-bottom: 1.5rem; }
-        .globe {
-            width: 60px; height: 60px;
-            margin: 0 auto;
-            border-radius: 50%;
-            border: 3px solid rgba(99, 179, 237, 0.2);
-            border-top-color: #63b3ed;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: #e2e8f0; font-weight: 500; margin-bottom: 0.3rem; }
-        .loading-sub { color: #8892b0; font-size: 0.8rem; margin-bottom: 1.5rem; }
-        .progress-bar {
-            width: 100%;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #2563eb, #63b3ed);
-            border-radius: 2px;
-            transition: width 0.5s ease;
         }
 
-        /* Result panel */
-        .result-panel {
-            display: none;
-            margin-top: 1.5rem;
-            padding: 1.5rem;
+        /* Info panel */
+        .info-panel { display: flex; flex-direction: column; gap: 1.2rem; }
+        .info-card {
+            background: #fff;
             border-radius: 16px;
-            animation: slideUp 0.4s ease;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 1px solid #ebe6df;
         }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
+        .info-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+            color: #2d2a26;
+        }
+        .info-card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .info-card li {
+            padding: 0.4rem 0;
+            font-size: 0.85rem;
+            color: #5c5650;
+            border-bottom: 1px solid #f3efe9;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .info-card li::before {
+            content: '✓';
+            color: #8b9e6b;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+        .info-card li:last-child { border-bottom: none; }
+
+        /* Tech items */
+        .tech-logos { display: flex; flex-direction: column; gap: 0.7rem; }
+        .tech-item {
+            display: grid;
+            grid-template-columns: 30px 1fr;
+            grid-template-rows: auto auto;
+            gap: 0 0.5rem;
+            align-items: center;
+        }
+        .tech-icon { font-size: 1.2rem; grid-row: 1 / 3; }
+        .tech-item span:nth-child(2) { font-size: 0.85rem; font-weight: 500; color: #2d2a26; }
+        .tech-item small { font-size: 0.72rem; color: #9a8e82; grid-column: 2; }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(250, 247, 242, 0.92);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+        .loading-animation { margin-bottom: 1.5rem; }
+        .plane {
+            font-size: 2.5rem;
+            animation: fly 2s ease-in-out infinite;
+        }
+        @keyframes fly {
+            0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+            25% { transform: translateX(15px) translateY(-8px) rotate(5deg); }
+            75% { transform: translateX(-15px) translateY(-4px) rotate(-3deg); }
+        }
+        .loading-card h3 {
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 0.5rem;
+            color: #2d2a26;
+        }
+        .loading-card p { color: #7a7067; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .loading-steps { text-align: left; }
+        .l-step {
+            padding: 0.5rem 0.8rem;
+            font-size: 0.8rem;
+            color: #bfb5a8;
+            border-left: 2px solid #e8e2da;
+            margin-bottom: 0.3rem;
+            transition: all 0.3s;
+        }
+        .l-step.active {
+            color: #8b5e3c;
+            border-left-color: #c4956a;
+            font-weight: 500;
+        }
+        .l-step.done {
+            color: #8b9e6b;
+            border-left-color: #8b9e6b;
+        }
+
+        /* Result section */
+        .result-section {
+            display: none;
+            margin-top: 2rem;
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 1px solid #ebe6df;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .result-panel.success {
-            display: block;
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+        .result-section.success { display: block; border-left: 4px solid #8b9e6b; }
+        .result-section.error { display: block; border-left: 4px solid #c97b5e; }
+        .result-section h3 {
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 0.75rem;
         }
-        .result-panel.error {
-            display: block;
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        .result-panel h3 { color: #e2e8f0; margin-bottom: 0.75rem; font-size: 1.1rem; }
-        .result-panel p { color: #a0aec0; line-height: 1.6; margin-bottom: 0.4rem; font-size: 0.85rem; }
-        .result-panel a { color: #63b3ed; text-decoration: none; }
-        .result-panel a:hover { text-decoration: underline; }
-        .result-preview {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-size: 0.8rem;
-            color: #8892b0;
-            white-space: pre-wrap;
-            max-height: 250px;
-            overflow-y: auto;
+        .result-section p {
+            color: #5c5650;
+            font-size: 0.9rem;
             line-height: 1.6;
+            margin-bottom: 0.4rem;
+        }
+        .result-section a { color: #8b5e3c; font-weight: 500; }
+        .result-preview {
+            background: #faf7f2;
+            border: 1px solid #ebe6df;
+            border-radius: 10px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            font-size: 0.82rem;
+            color: #5c5650;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.7;
         }
 
         /* Footer */
-        .footer { text-align: center; padding: 2rem 0 1rem; }
-        .tech-stack { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-        .tech-badge {
-            padding: 0.3rem 0.7rem;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            font-size: 0.7rem;
-            color: #8892b0;
-            letter-spacing: 0.5px;
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #bfb5a8;
+            font-size: 0.8rem;
         }
-        .footer-text { color: #4a5568; font-size: 0.75rem; }
 
         /* Responsive */
-        @media (max-width: 500px) {
-            .prefs-grid { grid-template-columns: 1fr; }
-            .app-container { padding: 1rem; }
-            .card { padding: 1.5rem; }
+        @media (max-width: 768px) {
+            .content-grid { grid-template-columns: 1fr; }
+            .hero { height: 240px; }
+            .hero h1 { font-size: 2rem; }
+            .how-it-works { flex-direction: column; gap: 0.4rem; border-radius: 16px; margin: -1rem 1rem 1.5rem; }
+            .step-arrow { transform: rotate(90deg); }
+            .group-options { grid-template-columns: repeat(2, 1fr); }
+            .field-row { grid-template-columns: 1fr; }
         }
     </style>
 
     <script>
-        // Particles
-        const particlesEl = document.getElementById('particles');
-        for (let i = 0; i < 30; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.left = Math.random() * 100 + '%';
-            p.style.animationDelay = Math.random() * 20 + 's';
-            p.style.animationDuration = (15 + Math.random() * 15) + 's';
-            p.style.width = p.style.height = (2 + Math.random() * 3) + 'px';
-            particlesEl.appendChild(p);
-        }
-
-        // Preferences toggle
-        const prefsToggle = document.getElementById('prefsToggle');
-        const prefsPanel = document.getElementById('prefsPanel');
-        prefsToggle.addEventListener('click', () => {
-            prefsToggle.classList.toggle('open');
-            prefsPanel.classList.toggle('open');
-        });
-
-        // Chip selection
-        const chips = document.querySelectorAll('.chip');
-        const groupInput = document.getElementById('group_type');
-        chips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                chips.forEach(c => c.classList.remove('selected'));
-                chip.classList.add('selected');
-                groupInput.value = chip.dataset.value;
-            });
-        });
-
         // Form submission
         document.getElementById('researchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             const resultDiv = document.getElementById('result');
-            const pipeline = document.querySelector('.pipeline');
-            const progressFill = document.getElementById('progressFill');
 
             submitBtn.disabled = true;
             loading.classList.add('active');
-            resultDiv.className = 'result-panel';
-            pipeline.classList.add('active');
-            progressFill.style.width = '0%';
+            resultDiv.className = 'result-section';
 
-            // Animate pipeline steps
-            const steps = ['step1', 'step2', 'step3'];
+            // Animate loading steps
+            const steps = ['ls1', 'ls2', 'ls3'];
             let stepIdx = 0;
+            document.getElementById(steps[0]).classList.add('active');
             const stepInterval = setInterval(() => {
-                if (stepIdx < steps.length) {
-                    document.getElementById(steps[stepIdx]).classList.add('active');
-                    if (stepIdx > 0) document.getElementById(steps[stepIdx-1]).classList.remove('active');
-                    if (stepIdx > 0) document.getElementById(steps[stepIdx-1]).classList.add('done');
-                    progressFill.style.width = ((stepIdx + 1) / steps.length * 80) + '%';
+                if (stepIdx < steps.length - 1) {
+                    document.getElementById(steps[stepIdx]).classList.remove('active');
+                    document.getElementById(steps[stepIdx]).classList.add('done');
                     stepIdx++;
+                    document.getElementById(steps[stepIdx]).classList.add('active');
                 }
-            }, 5000);
+            }, 6000);
 
+            // Build request
             const destination = document.getElementById('destination').value;
             const tripLength = document.getElementById('trip_length').value;
             const budgetLevel = document.getElementById('budget_level').value;
             const travelStyle = document.getElementById('travel_style').value;
             const foodInterests = document.getElementById('food_interests').value;
-            const groupType = document.getElementById('group_type').value;
+            const groupRadio = document.querySelector('input[name="group_type"]:checked');
+            const groupType = groupRadio ? groupRadio.value : '';
 
             const preferences = {};
             if (tripLength) preferences.trip_length = tripLength;
@@ -577,40 +569,32 @@
                     body: JSON.stringify(body)
                 });
                 const data = await response.json();
-
                 clearInterval(stepInterval);
-                progressFill.style.width = '100%';
-                steps.forEach(s => {
-                    document.getElementById(s).classList.remove('active');
-                    document.getElementById(s).classList.add('done');
-                });
 
                 if (data.success) {
-                    let html = `<h3>✈️ Brief Ready!</h3>`;
-                    html += `<p><strong>Destination:</strong> ${data.destination}</p>`;
+                    let html = `<h3>Your ${data.destination} brief is ready</h3>`;
                     if (data.box_file_url) {
                         html += `<p>📄 <a href="${data.box_file_url}" target="_blank">${data.box_file_name}</a></p>`;
                     } else if (data.box_file_name) {
-                        html += `<p>📄 ${data.box_file_name}</p>`;
+                        html += `<p>📄 Saved as: ${data.box_file_name}</p>`;
                     }
                     html += `<p>${data.message}</p>`;
                     if (data.brief_preview) {
                         html += `<div class="result-preview">${data.brief_preview}...</div>`;
                     }
-                    resultDiv.className = 'result-panel success';
+                    resultDiv.className = 'result-section success';
                     resultDiv.innerHTML = html;
                 } else {
-                    resultDiv.className = 'result-panel error';
-                    resultDiv.innerHTML = `<h3>⚠️ Something went wrong</h3><p>${data.message}</p>`;
+                    resultDiv.className = 'result-section error';
+                    resultDiv.innerHTML = `<h3>Something went wrong</h3><p>${data.message}</p>`;
                 }
             } catch (err) {
                 clearInterval(stepInterval);
-                resultDiv.className = 'result-panel error';
-                resultDiv.innerHTML = `<h3>⚠️ Connection Error</h3><p>${err.message}</p>`;
+                resultDiv.className = 'result-section error';
+                resultDiv.innerHTML = `<h3>Connection error</h3><p>${err.message}</p>`;
             } finally {
                 submitBtn.disabled = false;
                 loading.classList.remove('active');
-                pipeline.classList.remove('active');
             }
         });
     </script>
