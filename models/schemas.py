@@ -67,4 +67,12 @@ class ResearchResponse(BaseModel):
     brief_preview: str = Field(
         description="First 500 characters of the generated travel brief"
     )
+    brief_full: Optional[str] = Field(
+        default=None,
+        description="Full generated travel brief in Markdown format",
+    )
+    brief_id: Optional[str] = Field(
+        default=None,
+        description="ID to view the brief on a dedicated page",
+    )
     message: str
