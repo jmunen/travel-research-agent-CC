@@ -7,45 +7,47 @@ import boto3
 
 logger = logging.getLogger(__name__)
 
-# Regions to try in order if throttled
-FALLBACK_REGIONS = ["us-west-2", "us-east-1", "eu-west-1", "ap-northeast-1"]
+# Models to try in order (different models may have separate quotas)
+FALLBACK_MODELS = [
+    "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    "anthropic.claude-3-haiku-20240307-v1:0",
+    "us.amazon.nova-lite-v1:0",
+    "us.amazon.nova-micro-v1:0",
+]
 
 
 class AISummarizer:
-    """Generates travel briefs using Amazon Bedrock Claude with multi-region fallback."""
+    """Generates travel briefs using Amazon Bedrock with model fallback."""
 
     def __init__(self):
         """Initialize the Bedrock runtime client using environment variables."""
-        self.primary_region = os.getenv("AWS_REGION", "us-east-1")
+        self.region = os.getenv("AWS_REGION", "us-east-1")
         self.model_id = os.getenv(
             "BEDROCK_MODEL_ID", "us.anthropic.claude-3-5-haiku-20241022-v1:0"
         )
         self.aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
         self.aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-        # Build ordered list of regions to try (primary first, then fallbacks)
-        self.regions = [self.primary_region] + [
-            r for r in FALLBACK_REGIONS if r != self.primary_region
-        ]
-
-        self.client = self._create_client(self.primary_region)
-        logger.info(
-            f"Bedrock client initialized (region={self.primary_region}, model={self.model_id})"
-        )
-
-    def _create_client(self, region: str):
-        """Create a Bedrock runtime client for a specific region."""
-        return boto3.client(
+        self.client = boto3.client(
             "bedrock-runtime",
-            region_name=region,
+            region_name=self.region,
             aws_access_key_id=self.aws_access_key,
             aws_secret_access_key=self.aws_secret_key,
         )
 
+        # Build model list: configured model first, then fallbacks
+        self.models = [self.model_id] + [
+            m for m in FALLBACK_MODELS if m != self.model_id
+        ]
+
+        logger.info(
+            f"Bedrock client initialized (region={self.region}, model={self.model_id})"
+        )
+
     def summarize(self, prompt: str) -> str:
         """
-        Generate a travel brief summary using Claude via Bedrock.
-        Automatically retries in different regions if throttled.
+        Generate a travel brief using the Converse API with model fallback.
+        Tries multiple models if one is throttled.
 
         Args:
             prompt: The full prompt including research data and instructions.
@@ -54,67 +56,68 @@ class AISummarizer:
             The generated travel brief as a Markdown string.
 
         Raises:
-            RuntimeError: If the Bedrock API call fails in all regions.
+            RuntimeError: If all models fail.
         """
-        body = json.dumps(
-            {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 4096,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
-            }
-        )
-
         last_error = None
 
-        for region in self.regions:
-            logger.info(f"Trying Bedrock model {self.model_id} in region {region}...")
-            client = self._create_client(region)
+        for model_id in self.models:
+            logger.info(f"Trying model: {model_id} in {self.region}...")
 
             try:
-                response = client.invoke_model(
-                    modelId=self.model_id,
-                    contentType="application/json",
-                    accept="application/json",
-                    body=body,
+                response = self.client.converse(
+                    modelId=model_id,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [{"text": prompt}],
+                        }
+                    ],
+                    inferenceConfig={
+                        "maxTokens": 4096,
+                        "temperature": 0.7,
+                    },
                 )
 
-                response_body = json.loads(response["body"].read())
+                # Extract text from Converse API response
+                output = response.get("output", {})
+                message = output.get("message", {})
+                content = message.get("content", [])
 
-                # Extract text from Claude's response format
-                content = response_body.get("content", [])
                 if content and len(content) > 0:
                     text = content[0].get("text", "")
                     logger.info(
-                        f"Successfully generated summary in {region} ({len(text)} characters)"
+                        f"Successfully generated summary with {model_id} ({len(text)} characters)"
                     )
                     return text
 
-                logger.warning(f"Bedrock response from {region} contained no content")
+                logger.warning(f"Model {model_id} returned no content")
                 continue
 
-            except client.exceptions.ThrottlingException as e:
-                logger.warning(f"Throttled in {region}: {str(e)} - trying next region...")
+            except self.client.exceptions.ThrottlingException as e:
+                logger.warning(f"Throttled on {model_id}: {str(e)} - trying next model...")
                 last_error = e
                 continue
             except Exception as e:
-                error_msg = f"Bedrock error in {region}: {str(e)}"
-                logger.error(error_msg)
-                last_error = e
-                # For non-throttling errors, don't retry other regions
-                if "ThrottlingException" not in str(e) and "Too many tokens" not in str(e):
+                error_str = str(e)
+                if "ThrottlingException" in error_str or "Too many tokens" in error_str:
+                    logger.warning(f"Throttled on {model_id}: {error_str} - trying next model...")
+                    last_error = e
+                    continue
+                elif "model identifier is invalid" in error_str:
+                    logger.warning(f"Model {model_id} not available in {self.region} - trying next...")
+                    last_error = e
+                    continue
+                else:
+                    error_msg = f"Bedrock error with {model_id}: {error_str}"
+                    logger.error(error_msg)
                     raise RuntimeError(error_msg) from e
-                continue
 
-        # All regions exhausted
+        # All models exhausted
         error_msg = (
-            f"All regions throttled. Daily token limit reached across all regions. "
+            f"All models throttled or unavailable. Daily token limit reached. "
             f"Please wait for the quota to reset (usually midnight UTC) or request a "
-            f"quota increase in AWS Service Quotas. Last error: {str(last_error)}"
+            f"quota increase in AWS Service Quotas → Amazon Bedrock. "
+            f"Last error: {str(last_error)}"
         )
         logger.error(error_msg)
         raise RuntimeError(error_msg)
