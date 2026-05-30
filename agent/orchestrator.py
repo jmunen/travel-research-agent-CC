@@ -105,6 +105,7 @@ class TravelResearchOrchestrator:
                 box_file_name=box_file_name,
                 box_file_url=box_file_url,
                 brief_preview=brief_preview,
+                brief_full=brief_content,
                 message=message,
             )
 
